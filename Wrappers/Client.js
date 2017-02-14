@@ -2,8 +2,10 @@
  * Created by mitch on 2/7/2017.
  */
 
-function Client(connection, config) {
+function Client(connection, clients, database, config) {
     this.connection = connection;
+    this.clients = clients;
+    this.database = database;
     this.config = config;
 
     const Login = require('./Login');
@@ -18,10 +20,10 @@ function Client(connection, config) {
 
 
 Client.prototype.getEvents = function() {
-    var connection  = this.connection;
-    var clients = this.clients;
-    var history = this.history;
-    var LoginManager = this.LoginManager;
+    let connection  = this.connection;
+    let clients = this.clients;
+    let history = this.history;
+    let LoginManager = this.LoginManager;
 
     // user sent some message
     connection.on('message', function(message) {
@@ -33,11 +35,11 @@ Client.prototype.getEvents = function() {
                 return;
             }
 
-            var type = json.type;
-            var data = json.data;
+            let type = json.type;
+            let data = json.data;
 
             if (type === 'login') {
-                LoginManager.login(data.username, data.password);
+                LoginManager.login(data.username, data.password, data.lat, data.lng);
             } else {
                 if (LoginManager.isLoggedIn()) {
 
@@ -45,7 +47,7 @@ Client.prototype.getEvents = function() {
                         console.log((new Date()) + ' Received Message from ' + LoginManager.getUsername() + ': ' + data);
 
                         // we want to keep history of all sent messages
-                        var obj = {
+                        let obj = {
                             time: (new Date()).getTime(),
                             text: data,
                             author: LoginManager.getUsername()
@@ -54,8 +56,8 @@ Client.prototype.getEvents = function() {
                         history = history.slice(-100);
 
                         // broadcast message to all connected clients
-                        var json2 = JSON.stringify({type: 'message', data: obj});
-                        for (var i = 0; i < clients.length; i++) {
+                        let json2 = JSON.stringify({type: 'message', data: obj});
+                        for (let i = 0; i < clients.length; i++) {
                             clients[i].getConnection().sendUTF(json2);
                         }
                     }
@@ -68,18 +70,18 @@ Client.prototype.getEvents = function() {
     connection.on('close', function() {
         console.log((new Date()) + " User " + LoginManager.getUsername() + " disconnected.");
         this.LoginManager = null;
-        var index = clients.indexOf(this);
+        let index = clients.indexOf(this);
         clients.splice(index, 1);
     });
-}
+};
 
 Client.prototype.getConnection = function() {
     return this.connection;
-}
+};
 
 Client.prototype.getLoginManager = function() {
     return this.LoginManager;
-}
+};
 
 Client.prototype.changeLocation = function(clients, history) {
     this.clients = clients;
@@ -91,6 +93,6 @@ Client.prototype.changeLocation = function(clients, history) {
     if (this.history.length > 0) {
         this.connection.sendUTF(JSON.stringify({type: 'history', data: this.history}));
     }
-}
+};
 
 module.exports = Client;
