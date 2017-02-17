@@ -10,9 +10,11 @@ function Config() {
     this.PORT = 447;
     this.HOST = 'localhost';
 
-    this.DB_HOST = 'localhost';
+    this.DB_HOST = '72.90.86.178';
     this.DB_PORT = 5432;
-    this.DB_USER = 'gbot';
+    this.DB_USER = 'postgres';
+    this.DB_PASS = 'halfmoon';
+    this.DB_DATABASE = 'ghost';
 
     process.title = 'ghost-server';
 }
@@ -39,6 +41,14 @@ Config.prototype.getDBHost = function() {
 
 Config.prototype.getDBUsername = function() {
     return this.DB_USER;
+};
+
+Config.prototype.getDBPassword = function() {
+    return this.DB_PASS;
+};
+
+Config.prototype.getDBDatabase = function() {
+    return this.DB_DATABASE;
 };
 
 module.exports = Config;

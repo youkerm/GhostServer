@@ -2,29 +2,37 @@
  * Created by mitch on 2/7/2017.
  */
 
-function Client(connection, clients, database, config) {
+function Client(connection, eventManager, config) {
+    /* Bindings */
     this.connection = connection;
-    this.clients = clients;
-    this.database = database;
     this.config = config;
+    this.eventManager = eventManager;
 
-    const Login = require('./Login');
-    this.LoginManager = new Login(this.connection, this.config);
+    /* Class used variables */
+    this.isLogin = false;
+    this.location = false;
 
-    if (this.history.length > 0) {
-        this.connection.sendUTF(JSON.stringify({type: 'history', data: this.history}));
-    }
-
+    /* Handles when an event is triggered */
     this.getEvents();
 }
 
+Client.prototype.getLocation = function() {
+    return this.location;
+};
+
+Client.prototype.setLocation = function(loc) {
+    this.location = loc;
+};
 
 Client.prototype.getEvents = function() {
-    let connection  = this.connection;
-    let clients = this.clients;
-    let history = this.history;
-    let LoginManager = this.LoginManager;
+    let EventManager = this.eventManager;
+    let LoginManager = this.eventManager.getLoginManager();
+    let Database = EventManager.getDatabase();
 
+    let connection  = this.connection;
+    let location = this.location;
+
+    let self = this;
     // user sent some message
     connection.on('message', function(message) {
         if (message.type === 'utf8') { // accept only text
@@ -39,27 +47,34 @@ Client.prototype.getEvents = function() {
             let data = json.data;
 
             if (type === 'login') {
-                LoginManager.login(data.username, data.password, data.lat, data.lng);
+                if (!this.isLogin) {
+                    this.isLogin = LoginManager.login(connection, data.username, data.password);
+                }
+                if (this.isLogin) {
+                    this.username = data.username;
+                    LoginManager.changeLocation(self, EventManager, data.lat, data.lng);
+                }
             } else {
-                if (LoginManager.isLoggedIn()) {
+                if (this.isLogin) {
 
                     if (type === 'post') {
-                        console.log((new Date()) + ' Received Message from ' + LoginManager.getUsername() + ': ' + data);
-
                         // we want to keep history of all sent messages
                         let obj = {
                             time: (new Date()).getTime(),
                             text: data,
-                            author: LoginManager.getUsername()
+                            author: this.username
                         };
-                        history.push(obj);
-                        history = history.slice(-100);
+
+                        self.getLocation().history.push(obj);
+                        self.getLocation().history = self.getLocation().history.slice(-100);
 
                         // broadcast message to all connected clients
                         let json2 = JSON.stringify({type: 'message', data: obj});
-                        for (let i = 0; i < clients.length; i++) {
-                            clients[i].getConnection().sendUTF(json2);
+                        for (let i = 0; i < self.getLocation().clients.length; i++) {
+                            self.getLocation().clients[i].connection.sendUTF(json2);
                         }
+
+                        console.log((new Date()) + ' Received Message from ' + this.username + ': ' + data);
                     }
                 }
             }
@@ -68,31 +83,13 @@ Client.prototype.getEvents = function() {
 
     // user disconnected
     connection.on('close', function() {
-        console.log((new Date()) + " User " + LoginManager.getUsername() + " disconnected.");
-        this.LoginManager = null;
-        let index = clients.indexOf(this);
-        clients.splice(index, 1);
+        console.log((new Date()) + " User " + this.username + " disconnected.");
+        if (!this.location) { // User in lobby
+            EventManager.deleteClient(this);
+        } else { // User in location
+            this.getLocation().deleteClient(this);
+        }
     });
-};
-
-Client.prototype.getConnection = function() {
-    return this.connection;
-};
-
-Client.prototype.getLoginManager = function() {
-    return this.LoginManager;
-};
-
-Client.prototype.changeLocation = function(clients, history) {
-    this.clients = clients;
-    this.history = history;
-
-    //Sends to the client to drop all current feeds and update
-    //this.connection.sendUTF(JSON.stringify({type: 'change_location'}));
-
-    if (this.history.length > 0) {
-        this.connection.sendUTF(JSON.stringify({type: 'history', data: this.history}));
-    }
 };
 
 module.exports = Client;

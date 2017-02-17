@@ -1,7 +1,7 @@
 "use strict";
 
 let Config = require('./Wrappers/Config');
-let LocationManager = require('./Managers/LocationManager');
+let EventManager = require('./Managers/EventManager');
 
 let webSocketServer = require('websocket').server;
 let http = require('http');
@@ -16,4 +16,5 @@ server.listen(config.getPort(), config.getHost(), function() {
 /* WebSocket server */
 let wsServer = new webSocketServer({ httpServer: server });
 
-let locationManager = new LocationManager(wsServer, config); // Where everything is managed
+let manager = new EventManager(wsServer, config); // Where everything is managed
+manager.run();
