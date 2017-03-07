@@ -1,54 +1,54 @@
+
 /**
  * Created by mitch on 2/7/2017.
  */
 
-"use strict";
+let Config = {
 
-function Config() {
-    this.DEV_MODE = true;
+    /* Developer Mode (FALSE in production!!) */
+    DEV_MODE : false,
 
-    this.PORT = 447;
-    this.HOST = 'localhost';
+    /* Web Socket Configs */
+    WEB_SOCKET : {
+        HOST: 'localhost',
+        PORT: 447
+    },
 
-    this.DB_HOST = '72.90.86.178';
-    this.DB_PORT = 5432;
-    this.DB_USER = 'postgres';
-    this.DB_PASS = 'halfmoon';
-    this.DB_DATABASE = 'ghost';
+    /* Location Database Configs */
+    LOCATION_DB : {
+        HOST: '72.90.86.178',
+        PORT: 5432,
+        DATABASE: 'ghost',
+        USERNAME: 'postgres',
+        PASSWORD: 'halfmoon'
+    },
 
-    process.title = 'ghost-server';
-}
+    /* User Database Configs */
+    USER_DB : {
+        HOST: '72.90.86.178',
+        PORT: 5432,
+        DATABASE: 'ghost_users',
+        USERNAME: 'postgres',
+        PASSWORD: 'halfmoon'
+    },
 
-Config.prototype.inDevMode = function() {
-    return this.DEV_MODE;
-};
+    /* Social SQL Database Configs */
+    SOCIAL_SQL_DB : {
+        HOST: '72.90.86.178',
+        PORT: 5432,
+        DATABASE: 'ghost',
+        USERNAME: 'postgres',
+        PASSWORD: 'halfmoon'
+    },
 
-Config.prototype.getPort = function() {
-    return this.PORT;
-};
-
-Config.prototype.getHost = function() {
-    return this.HOST;
-};
-
-Config.prototype.getDBPort = function() {
-    return this.DB_PORT;
-};
-
-Config.prototype.getDBHost = function() {
-    return this.DB_HOST;
-};
-
-Config.prototype.getDBUsername = function() {
-    return this.DB_USER;
-};
-
-Config.prototype.getDBPassword = function() {
-    return this.DB_PASS;
-};
-
-Config.prototype.getDBDatabase = function() {
-    return this.DB_DATABASE;
+    /* Social NoSQL Database Configs */
+    SOCIAL_NoSQL_DB : {
+        HOST: '72.90.86.178',
+        PORT: 5432,
+        DATABASE: 'ghost',
+        USERNAME: 'postgres',
+        PASSWORD: 'halfmoon'
+    }
 };
 
 module.exports = Config;

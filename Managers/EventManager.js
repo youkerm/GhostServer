@@ -7,17 +7,17 @@ let Location = require('../Wrappers/Location');
 let Database = require('../Wrappers/Database');
 let Login = require('../Wrappers/Login');
 
-function EventManager(ws, config) {
+function EventManager(ws, Config) {
     this.ws = ws;
-    this.config = config;
-    this.database = new Database(config);
+    this.Config = Config;
+    this.database = new Database(Config);
 
 //                            SW.lng,    SW.lat,      NE.lng,      NE.lat
     this.manager_bounds = [ -170.704466, 14.819484, -66.949822605, 71.706221 ]; // Bounds of the locations of which this manager can create an instance
 
     this.locations = []; // list of currently open locations
     this.lobby_clients = []; // list of clients that haven't been assigned to a location
-    this.loginManager = new Login(this.database, config);
+    this.loginManager = new Login(this.database, this, Config);
 }
 
 EventManager.prototype.run = function() {
@@ -36,7 +36,7 @@ EventManager.prototype.run = function() {
 /* Adds a client to lobby waiting to login and change to location */
 EventManager.prototype.addClient = function(connection) {
     if (connection != null) {
-        let client = new Client(connection, this, this.config);
+        let client = new Client(connection, this, this.Config);
         this.lobby_clients.push(client);
     }
 };
@@ -48,6 +48,7 @@ EventManager.prototype.deleteClient = function(client) {
     if (index > 0) {
         this.lobby_clients.splice(index, 1);
     }
+    client = null;
 };
 
 EventManager.prototype.getLoginManager = function() {
@@ -56,6 +57,15 @@ EventManager.prototype.getLoginManager = function() {
 
 EventManager.prototype.getDatabase = function() {
     return this.database;
+};
+
+/* Deletes a locations from the location list */
+EventManager.prototype.deleteLocation = function(location) {
+    let index = this.locations.indexOf(location);
+    if (index != -1) {
+        this.locations.splice(index, 1);
+    }
+    location = null;
 };
 
 /* Find the location in the list of open locations */
@@ -70,14 +80,12 @@ EventManager.prototype.findLocation = function(locationID) {
 
 EventManager.prototype.spawnLocation = function(locationID, client) {
     let bounds = this.manager_bounds;
-    let findLocation = new this.database.ps('spawn-location', 'SELECT location_id FROM locations WHERE location_id = $5 AND bounds @ ST_MakeEnvelope($1, $2, $3, $4, 4326);', [bounds[0], bounds[1], bounds[2], bounds[3], locationID]); // Creating a prepare
-
-    //console.log('SELECT location_id FROM locations WHERE location_id = \'' + locationID + '\' AND bounds @ ST_MakeEnvelope(' + bounds[0] + ', ' + bounds[1] + ', ' + bounds[2] + ', ' + bounds[3] + ', 4326);');
+    let findLocation = new this.database.preparedStatment('spawn-location', 'SELECT location_id FROM locations WHERE location_id = $5 AND bounds @ ST_MakeEnvelope($1, $2, $3, $4, 4326);', [bounds[0], bounds[1], bounds[2], bounds[3], locationID]); // Creating a prepare
 
     self = this;
-    this.database.getDB().one(findLocation)
-        .then(function(data) {
-            let location = new Location(locationID, self, self.config);
+    this.database.Location_DB().one(findLocation)
+        .then(function() {
+            let location = new Location(locationID, self, self.Config);
             self.locations.push(location);
 
             /* Removes the client from the old location */
@@ -110,8 +118,6 @@ EventManager.prototype.changeLocation = function(client, locationID) {
 
     /* Adds client to the new location */
     if (location != false) {
-        console.log('here');
-
         /* Removes the client from the old location */
         if (!client.location) { // If in lobby
             this.deleteClient(client);
